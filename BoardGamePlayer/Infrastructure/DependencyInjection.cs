@@ -43,7 +43,6 @@ public static class DependencyInjection
         // behaviors
         services.AddScoped<IValidator<CreateUserCommand>, CreateUserCommandValidator>();
         services.AddScoped<IValidator<CreateGameCommand>, CreateGameCommandValidator>();
-        services.AddScoped<IValidator<StartGameCommand>, StartGameCommandValidator>();
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         return services;
     }

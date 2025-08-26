@@ -2,7 +2,6 @@
 using MediatR;
 using BoardGamePlayer.Data;
 using BoardGamePlayer.Domain;
-using BoardGamePlayer.Features.Users.Handlers;
 using BoardGamePlayer.Infrastructure.Exceptions;
 
 namespace BoardGamePlayer.Features.Games.Handlers;
@@ -12,21 +11,10 @@ public record CreateGameResponse(Guid Id, bool IsCreated);
 
 public class CreateGameCommandValidator : AbstractValidator<CreateGameCommand>
 {
-    public CreateGameCommandValidator(IMediator _mediator)
+    public CreateGameCommandValidator()
     {
         RuleFor(cmd => cmd.Title).NotEmpty();
         RuleFor(cmd => cmd.UserId).NotEmpty();
-        RuleFor(cmd => cmd.UserId).CustomAsync(async (id, context, cancellationToken) =>
-        {
-            try
-            {
-                await _mediator.Send(new GetUserQuery(id, null), cancellationToken);
-            }
-            catch (NotFoundException)
-            {
-                context.AddFailure($"No user found with Id {id}");
-            }
-        });
     }
 }
 
@@ -38,6 +26,10 @@ public class CreateGameHandler(
         CreateGameCommand command,
         CancellationToken cancellationToken)
     {
+        if (!_db.Users.Any(user => user.Id == command.UserId))
+        {
+            throw new NotFoundException($"User not found.");
+        }
         var existingGame = _db.Games.FirstOrDefault(game => game.Title == command.Title && game.UserId == command.UserId);
         if (existingGame != default(Game))
         {

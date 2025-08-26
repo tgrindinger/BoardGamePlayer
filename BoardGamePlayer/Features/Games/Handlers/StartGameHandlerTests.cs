@@ -2,6 +2,7 @@
 using BoardGamePlayer.Features.Users.Handlers;
 using MediatR;
 using Xunit;
+using BoardGamePlayer.Infrastructure.Exceptions;
 
 namespace BoardGamePlayer.Features.Games.Handlers;
 
@@ -35,7 +36,7 @@ public class StartGameHandlerTests(IMediator _mediator)
         var action = async () => await _mediator.Send(cmd);
 
         // assert
-        await Assert.ThrowsAsync<ValidationException>(action);
+        await Assert.ThrowsAsync<NotFoundException>(action);
     }
 
     [Fact]
@@ -48,7 +49,7 @@ public class StartGameHandlerTests(IMediator _mediator)
         var action = async () => await _mediator.Send(cmd);
 
         // assert
-        await Assert.ThrowsAsync<ValidationException>(action);
+        await Assert.ThrowsAsync<NotFoundException>(action);
     }
 }
 

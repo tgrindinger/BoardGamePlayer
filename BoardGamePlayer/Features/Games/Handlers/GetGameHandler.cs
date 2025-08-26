@@ -5,11 +5,9 @@ using MediatR;
 
 namespace BoardGamePlayer.Features.Games.Handlers;
 
-// public contracts
 public record GetGameQuery(Guid Id, Guid UserId) : IRequest<GetGameResponse>;
 public record GetGameResponse(Guid Id, string Title, GameStatus State);
 
-// handler
 public class GetGameHandler(
     QueryDbContext _db)
     : IRequestHandler<GetGameQuery, GetGameResponse>

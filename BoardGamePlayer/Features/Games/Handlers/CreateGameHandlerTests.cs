@@ -2,6 +2,7 @@
 using BoardGamePlayer.Features.Users.Handlers;
 using MediatR;
 using Xunit;
+using BoardGamePlayer.Infrastructure.Exceptions;
 
 namespace BoardGamePlayer.Features.Games.Handlers;
 
@@ -59,6 +60,6 @@ public class CreateGameHandlerTests(IMediator _mediator)
         var command = () => _mediator.Send(new CreateGameCommand(Guid.NewGuid(), Guid.NewGuid().ToString()));
 
         // assert
-        await Assert.ThrowsAsync<ValidationException>(command);
+        await Assert.ThrowsAsync<NotFoundException>(command);
     }
 }
