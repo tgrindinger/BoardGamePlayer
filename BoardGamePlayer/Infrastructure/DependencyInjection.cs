@@ -2,10 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using FluentValidation;
-using BoardGamePlayer.Features.Games;
 using BoardGamePlayer.Features.Games.Handlers;
-using BoardGamePlayer.Features.Users;
 using BoardGamePlayer.Features.Users.Handlers;
+using BoardGamePlayer.Data;
 
 namespace BoardGamePlayer.Infrastructure;
 
@@ -27,26 +26,24 @@ public static class DependencyInjection
     {
         // infrastructure
         services.AddTransient<IMediator, Mediator>();
-        services.AddDbContext<GameAppDbContext>(options => options.UseInMemoryDatabase("TestDb-Game"));
-        services.AddDbContext<UserAppDbContext>(options => options.UseInMemoryDatabase("TestDb-User"));
-
-        // mapping
-        services.AddScoped<IMappingMediator<LookupUserQuery, LookupUserResponse>,
-            CustomMappingMediator<LookupUserQuery, LookupUserResponse, GetUserQuery, GetUserResponse>>();
-        services.AddScopedMapping<LookupUserQuery, GetUserQuery>(
-            source => new GetUserQuery(source.Id, string.Empty));
-        services.AddScopedMapping<GetUserResponse, LookupUserResponse>(
-            source => new LookupUserResponse(source.Id));
+        services.AddDbContext<CommandDbContext>(options => options
+            .UseInMemoryDatabase("TestDb"));
+        services.AddDbContext<QueryDbContext>(options => options
+            .UseInMemoryDatabase("TestDb")
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 
         // handlers
         services.AddScoped<IRequestHandler<CreateUserCommand, CreateUserResponse>, CreateUserHandler>();
         services.AddScoped<IRequestHandler<GetUserQuery, GetUserResponse>, GetUserHandler>();
         services.AddScoped<IRequestHandler<CreateGameCommand, CreateGameResponse>, CreateGameHandler>();
         services.AddScoped<IRequestHandler<GetGameQuery, GetGameResponse>, GetGameHandler>();
+        services.AddScoped<IRequestHandler<GetGamesQuery, GetGamesResponse>, GetGamesHandler>();
+        services.AddScoped<IRequestHandler<StartGameCommand, StartGameResponse>, StartGameHandler>();
 
         // behaviors
         services.AddScoped<IValidator<CreateUserCommand>, CreateUserCommandValidator>();
         services.AddScoped<IValidator<CreateGameCommand>, CreateGameCommandValidator>();
+        services.AddScoped<IValidator<StartGameCommand>, StartGameCommandValidator>();
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         return services;
     }

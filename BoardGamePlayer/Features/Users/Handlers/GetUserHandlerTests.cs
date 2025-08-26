@@ -1,4 +1,5 @@
-﻿using BoardGamePlayer.Infrastructure.Exceptions;
+﻿using BoardGamePlayer.Features.Games.Handlers;
+using BoardGamePlayer.Infrastructure.Exceptions;
 using MediatR;
 using Xunit;
 
@@ -92,4 +93,3 @@ public class GetUserHandlerTests(IMediator _mediator)
         await Assert.ThrowsAsync<NotFoundException>(command);
     }
 }
-

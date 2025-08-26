@@ -1,4 +1,6 @@
-﻿using FluentValidation;
+﻿using BoardGamePlayer.Data;
+using BoardGamePlayer.Domain;
+using FluentValidation;
 using MediatR;
 
 namespace BoardGamePlayer.Features.Users.Handlers;
@@ -15,19 +17,19 @@ public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
 }
 
 public class CreateUserHandler(
-    UserAppDbContext _db)
+    CommandDbContext _db)
     : IRequestHandler<CreateUserCommand, CreateUserResponse>
 {
     public async Task<CreateUserResponse> Handle(
         CreateUserCommand command,
         CancellationToken cancellationToken)
     {
-        var user = new User { Name = command.Name, GameIds = [] };
         var existingUser = _db.Users.FirstOrDefault(user => user.Name == command.Name);
         if (existingUser != default(User))
         {
             return new CreateUserResponse(existingUser.Id, false);
         }
+        var user = new User { Name = command.Name };
         var savedUser = _db.Users.Add(user);
         await _db.SaveChangesAsync(cancellationToken);
         return new CreateUserResponse(savedUser.Entity.Id, true);

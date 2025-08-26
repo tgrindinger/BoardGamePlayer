@@ -10,7 +10,7 @@ public static class UserEndpoints
     {
         var group = app.MapGroup("/users")
             .WithTags("Users");
-        group.MapPost("/", async (CreateUserCommand cmd, IMediator mediator) =>
+        group.MapPost("", async (CreateUserCommand cmd, IMediator mediator) =>
             await mediator.Send(cmd));
         group.MapGet("", async ([FromQuery] Guid? id, [FromQuery] string? name, IMediator mediator) =>
             await mediator.Send(new GetUserQuery(id, name)));

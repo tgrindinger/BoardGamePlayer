@@ -1,30 +1,26 @@
 ﻿using FluentValidation;
-using BoardGamePlayer.Infrastructure;
-using BoardGamePlayer.Infrastructure.Exceptions;
 using MediatR;
+using BoardGamePlayer.Data;
+using BoardGamePlayer.Domain;
+using BoardGamePlayer.Features.Users.Handlers;
+using BoardGamePlayer.Infrastructure.Exceptions;
 
 namespace BoardGamePlayer.Features.Games.Handlers;
 
-// public contracts
 public record CreateGameCommand(Guid UserId, string Title) : IRequest<CreateGameResponse>;
 public record CreateGameResponse(Guid Id, bool IsCreated);
 
-// internal contracts
-public record LookupUserQuery(Guid Id) : IRequest<LookupUserResponse>;
-public record LookupUserResponse(Guid Id);
-
-// validators
 public class CreateGameCommandValidator : AbstractValidator<CreateGameCommand>
 {
-    public CreateGameCommandValidator(IMappingMediator<LookupUserQuery, LookupUserResponse> _userMediator)
+    public CreateGameCommandValidator(IMediator _mediator)
     {
-        RuleFor(game => game.Title).NotEmpty();
-        RuleFor(game => game.UserId).NotEmpty();
-        RuleFor(game => game.UserId).CustomAsync(async (id, context, cancellationToken) =>
+        RuleFor(cmd => cmd.Title).NotEmpty();
+        RuleFor(cmd => cmd.UserId).NotEmpty();
+        RuleFor(cmd => cmd.UserId).CustomAsync(async (id, context, cancellationToken) =>
         {
             try
             {
-                await _userMediator.Send(new LookupUserQuery(id), cancellationToken);
+                await _mediator.Send(new GetUserQuery(id, null), cancellationToken);
             }
             catch (NotFoundException)
             {
@@ -34,9 +30,8 @@ public class CreateGameCommandValidator : AbstractValidator<CreateGameCommand>
     }
 }
 
-// handlers
 public class CreateGameHandler(
-    GameAppDbContext _db)
+    CommandDbContext _db)
     : IRequestHandler<CreateGameCommand, CreateGameResponse>
 {
     public async Task<CreateGameResponse> Handle(

@@ -1,0 +1,12 @@
+﻿using BoardGamePlayer.Domain;
+using Microsoft.EntityFrameworkCore;
+
+namespace BoardGamePlayer.Data;
+
+public class QueryDbContext : DbContext
+{
+    public DbSet<Game> Games => Set<Game>();
+    public DbSet<User> Users => Set<User>();
+
+    public QueryDbContext(DbContextOptions<QueryDbContext> options) : base(options) { }
+}

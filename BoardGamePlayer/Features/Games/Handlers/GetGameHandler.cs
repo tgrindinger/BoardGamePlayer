@@ -1,13 +1,17 @@
-﻿using BoardGamePlayer.Infrastructure.Exceptions;
+﻿using BoardGamePlayer.Data;
+using BoardGamePlayer.Domain;
+using BoardGamePlayer.Infrastructure.Exceptions;
 using MediatR;
 
 namespace BoardGamePlayer.Features.Games.Handlers;
 
+// public contracts
 public record GetGameQuery(Guid Id, Guid UserId) : IRequest<GetGameResponse>;
 public record GetGameResponse(Guid Id, string Title, GameStatus State);
 
+// handler
 public class GetGameHandler(
-    GameAppDbContext _db)
+    QueryDbContext _db)
     : IRequestHandler<GetGameQuery, GetGameResponse>
 {
     public async Task<GetGameResponse> Handle(

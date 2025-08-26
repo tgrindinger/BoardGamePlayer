@@ -1,4 +1,5 @@
-﻿using BoardGamePlayer.Features.Users.Handlers;
+﻿using BoardGamePlayer.Domain;
+using BoardGamePlayer.Features.Users.Handlers;
 using BoardGamePlayer.Infrastructure.Exceptions;
 using MediatR;
 using Xunit;
@@ -22,6 +23,19 @@ public class GetGameHandlerTests(IMediator _mediator)
         Assert.Equal(game.Id, response.Id);
         Assert.Equal(title, response.Title);
         Assert.Equal(GameStatus.Created, response.State);
+    }
+
+    [Fact]
+    public async Task GivenIAmNotAUser_WhenIGetAGame_ThenIGetAnError()
+    {
+        // arrange
+        var userId = Guid.NewGuid();
+
+        // act
+        var action = () => _mediator.Send(new GetGameQuery(Guid.NewGuid(), userId));
+
+        // assert
+        await Assert.ThrowsAsync<NotFoundException>(action);
     }
 
     [Fact]
