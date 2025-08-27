@@ -1,5 +1,5 @@
 ﻿using BoardGamePlayer.Features.Users.Handlers;
-using MediatR;
+using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BoardGamePlayer.Features.Users;
@@ -10,9 +10,9 @@ public static class UserEndpoints
     {
         var group = app.MapGroup("/users")
             .WithTags("Users");
-        group.MapPost("", async (CreateUserCommand cmd, IMediator mediator) =>
-            await mediator.Send(cmd));
-        group.MapGet("", async ([FromQuery] Guid? id, [FromQuery] string? name, IMediator mediator) =>
-            await mediator.Send(new GetUserQuery(id, name)));
+        group.MapPost("", async (CreateUserCommand cmd, IRequestClient<CreateUserCommand> client) =>
+            await client.GetResponse<CreateUserResponse>(cmd));
+        group.MapGet("", async ([FromQuery] Guid? id, [FromQuery] string? name, IRequestClient<GetUserQuery> client) =>
+            await client.GetResponse<GetUserResponse>(new GetUserQuery(id, name)));
     }
 }

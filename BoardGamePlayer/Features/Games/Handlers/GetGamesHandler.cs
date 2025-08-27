@@ -1,20 +1,24 @@
 ﻿using BoardGamePlayer.Data;
-using MediatR;
+using FluentValidation;
+using MassTransit;
 
 namespace BoardGamePlayer.Features.Games.Handlers;
 
-public record GetGamesQuery(Guid UserId) : IRequest<GetGamesResponse>;
+public record GetGamesQuery(Guid UserId);
 public record GetGamesResponse(IEnumerable<Guid> GameIds);
+
+public class GetGamesQueryValidator : AbstractValidator<GetGamesQuery>
+{
+    public GetGamesQueryValidator() { }
+}
 
 public class GetGamesHandler(
     QueryDbContext _db)
-    : IRequestHandler<GetGamesQuery, GetGamesResponse>
+    : IConsumer<GetGamesQuery>
 {
-    public async Task<GetGamesResponse> Handle(
-        GetGamesQuery query,
-        CancellationToken cancellationToken)
+    public async Task Consume(ConsumeContext<GetGamesQuery> context)
     {
-        var games = _db.Games.Where(game => game.UserId == query.UserId);
-        return await Task.FromResult(new GetGamesResponse(games.Select(g => g.Id)));
+        var games = _db.Games.Where(game => game.UserId == context.Message.UserId);
+        await context.RespondAsync(new GetGamesResponse(games.Select(g => g.Id)));
     }
 }

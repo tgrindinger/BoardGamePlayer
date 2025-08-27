@@ -1,10 +1,10 @@
 ﻿using FluentValidation;
-using MediatR;
+using MassTransit;
 using Xunit;
 
 namespace BoardGamePlayer.Features.Users.Handlers;
 
-public class CreateUserHandlerTests(IMediator _mediator)
+public class CreateUserHandlerTests(IRequestClient<CreateUserCommand> _client)
 {
     [Fact]
     public async Task GivenICanCreateAUser_WhenICreateAUser_ThenIGetTheirId()
@@ -12,11 +12,11 @@ public class CreateUserHandlerTests(IMediator _mediator)
         // arrange
 
         // act
-        var response = await _mediator.Send(new CreateUserCommand(Guid.NewGuid().ToString()));
+        var response = await _client.GetResponse<CreateUserResponse>(new CreateUserCommand(Guid.NewGuid().ToString()));
 
         // assert
-        Assert.True(response.Id.ToString().Length > 0);
-        Assert.True(response.IsCreated);
+        Assert.True(response.Message.Id.ToString().Length > 0);
+        Assert.True(response.Message.IsCreated);
     }
 
     [Fact]
@@ -25,10 +25,12 @@ public class CreateUserHandlerTests(IMediator _mediator)
         // arrange
 
         // act
-        var command = async () => await _mediator.Send(new CreateUserCommand(""));
+        var command = async () => await _client.GetResponse<CreateUserResponse>(new CreateUserCommand(""));
 
         // assert
-        await Assert.ThrowsAsync<ValidationException>(command);
+        var exception = await Assert.ThrowsAsync<RequestFaultException>(command);
+        var exceptionName = exception.Fault.Exceptions.FirstOrDefault()!.ExceptionType;
+        Assert.Contains(nameof(ValidationException), exceptionName);
     }
 
     [Fact]
@@ -36,13 +38,13 @@ public class CreateUserHandlerTests(IMediator _mediator)
     {
         // arrange
         var name = Guid.NewGuid().ToString();
-        var user = await _mediator.Send(new CreateUserCommand(name));
+        var user = await _client.GetResponse<CreateUserResponse>(new CreateUserCommand(name));
 
         // act
-        var response = await _mediator.Send(new CreateUserCommand(name));
+        var response = await _client.GetResponse<CreateUserResponse>(new CreateUserCommand(name));
 
         // assert
-        Assert.Equal(user.Id, response.Id);
-        Assert.False(response.IsCreated);
+        Assert.Equal(user.Message.Id, response.Message.Id);
+        Assert.False(response.Message.IsCreated);
     }
 }

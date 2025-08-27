@@ -1,54 +1,57 @@
-﻿using FluentValidation;
-using BoardGamePlayer.Features.Users.Handlers;
-using MediatR;
+﻿using BoardGamePlayer.Features.Users.Handlers;
 using Xunit;
-using BoardGamePlayer.Infrastructure.Exceptions;
+using MassTransit;
+using System.ComponentModel.DataAnnotations;
 
 namespace BoardGamePlayer.Features.Games.Handlers;
 
-public class CreateGameHandlerTests(IMediator _mediator)
+public class CreateGameHandlerTests(
+    IRequestClient<CreateGameCommand> _createGameClient,
+    IRequestClient<CreateUserCommand> _createUserClient)
 {
     [Fact]
     public async Task GivenICanCreateAGame_WhenICreateAGame_ThenIGetTheGameData()
     {
         // arrange
-        var user = await _mediator.Send(new CreateUserCommand(Guid.NewGuid().ToString()));
+        var user = await _createUserClient.GetResponse<CreateUserResponse>(new CreateUserCommand(Guid.NewGuid().ToString()));
 
         // act
-        var response = await _mediator.Send(new CreateGameCommand(user.Id, Guid.NewGuid().ToString()));
+        var response = await _createGameClient.GetResponse<CreateGameResponse>(new CreateGameCommand(user.Message.Id, Guid.NewGuid().ToString()));
 
         // assert
-        Assert.NotEqual(Guid.Empty, response.Id);
-        Assert.True(response.IsCreated);
+        Assert.NotEqual(Guid.Empty, response.Message.Id);
+        Assert.True(response.Message.IsCreated);
     }
 
     [Fact]
     public async Task GivenICanCreateAGame_WhenICreateADuplicateGame_ThenIGetTheExistingGame()
     {
         // arrange
-        var user = await _mediator.Send(new CreateUserCommand(Guid.NewGuid().ToString()));
+        var user = await _createUserClient.GetResponse<CreateUserResponse>(new CreateUserCommand(Guid.NewGuid().ToString()));
         var title = Guid.NewGuid().ToString();
-        var game = await _mediator.Send(new CreateGameCommand(user.Id, title));
+        var game = await _createGameClient.GetResponse<CreateGameResponse>(new CreateGameCommand(user.Message.Id, title));
 
         // act
-        var response = await _mediator.Send(new CreateGameCommand(user.Id, title));
+        var response = await _createGameClient.GetResponse<CreateGameResponse>(new CreateGameCommand(user.Message.Id, title));
 
         // assert
-        Assert.Equal(game.Id, response.Id);
-        Assert.False(response.IsCreated);
+        Assert.Equal(game.Message.Id, response.Message.Id);
+        Assert.False(response.Message.IsCreated);
     }
 
     [Fact]
     public async Task GivenICanCreateAGame_WhenICreateAGameWithoutATitle_ThenIGetAValidationError()
     {
         // arrange
-        var user = await _mediator.Send(new CreateUserCommand(Guid.NewGuid().ToString()));
+        var user = await _createUserClient.GetResponse<CreateUserResponse>(new CreateUserCommand(Guid.NewGuid().ToString()));
 
         // act
-        var command = () => _mediator.Send(new CreateGameCommand(user.Id, ""));
+        var command = () => _createGameClient.GetResponse<CreateGameResponse>(new CreateGameCommand(user.Message.Id, ""));
 
         // assert
-        await Assert.ThrowsAsync<ValidationException>(command);
+        var exception = await Assert.ThrowsAsync<RequestFaultException>(command);
+        var exceptionName = exception.Fault.Exceptions.FirstOrDefault()!.ExceptionType;
+        Assert.Contains(nameof(ValidationException), exceptionName);
     }
 
     [Fact]
@@ -57,9 +60,9 @@ public class CreateGameHandlerTests(IMediator _mediator)
         // arrange
 
         // act
-        var command = () => _mediator.Send(new CreateGameCommand(Guid.NewGuid(), Guid.NewGuid().ToString()));
+        var command = () => _createGameClient.GetResponse<CreateGameResponse>(new CreateGameCommand(Guid.NewGuid(), Guid.NewGuid().ToString()));
 
         // assert
-        await Assert.ThrowsAsync<NotFoundException>(command);
+        await Assert.ThrowsAsync<RequestFaultException>(command);
     }
 }

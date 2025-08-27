@@ -1,27 +1,31 @@
 ﻿using BoardGamePlayer.Infrastructure.Exceptions;
-using MediatR;
 using BoardGamePlayer.Data;
 using BoardGamePlayer.Domain;
+using MassTransit;
+using FluentValidation;
 
 namespace BoardGamePlayer.Features.Games.Handlers;
 
-public record StartGameCommand(Guid Id, Guid UserId) : IRequest<StartGameResponse>;
+public record StartGameCommand(Guid Id, Guid UserId);
 public record StartGameResponse(IEnumerable<Card> Hand);
+
+public class StartGameCommandValidator : AbstractValidator<StartGameCommand>
+{
+    public StartGameCommandValidator() { }
+}
 
 public class StartGameHandler(
     CommandDbContext _db)
-    : IRequestHandler<StartGameCommand, StartGameResponse>
+    : IConsumer<StartGameCommand>
 {
-    public async Task<StartGameResponse> Handle(
-        StartGameCommand command,
-        CancellationToken cancellationToken)
+    public async Task Consume(ConsumeContext<StartGameCommand> context)
     {
-        if (!_db.Games.Any(game => game.Id == command.Id))
+        if (!_db.Games.Any(game => game.Id == context.Message.Id))
         {
             throw new NotFoundException("Game not found");
         }
         // todo: fill in game domain with deck, board, hand states
         var startingHand = new Deck().DealStartingHand();
-        return await Task.FromResult(new StartGameResponse(startingHand.Cards));
+        await context.RespondAsync(new StartGameResponse(startingHand.Cards));
     }
 }

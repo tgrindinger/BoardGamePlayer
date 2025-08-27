@@ -1,25 +1,29 @@
 ﻿using BoardGamePlayer.Data;
 using BoardGamePlayer.Infrastructure.Exceptions;
-using MediatR;
+using FluentValidation;
+using MassTransit;
 
 namespace BoardGamePlayer.Features.Users.Handlers;
 
-public record GetUserQuery(Guid? Id, string? Name) : IRequest<GetUserResponse>;
+public record GetUserQuery(Guid? Id, string? Name);
 public record GetUserResponse(Guid Id, string Name);
+
+public class GetUserQueryValidator : AbstractValidator<GetUserQuery>
+{
+    public GetUserQueryValidator() { }
+}
 
 public class GetUserHandler(
     QueryDbContext _db)
-    : IRequestHandler<GetUserQuery, GetUserResponse>
+    : IConsumer<GetUserQuery>
 {
-    public async Task<GetUserResponse> Handle(
-        GetUserQuery query,
-        CancellationToken cancellationToken)
+    public async Task Consume(ConsumeContext<GetUserQuery> context)
     {
-        var user = _db.Users.FirstOrDefault(u => u.Id == query.Id || u.Name == query.Name);
+        var user = _db.Users.FirstOrDefault(u => u.Id == context.Message.Id || u.Name == context.Message.Name);
         if (user == null)
         {
-            throw new NotFoundException($"User with Id {query.Id} or Name {query.Name} was not found.");
+            throw new NotFoundException($"User with Id {context.Message.Id} or Name {context.Message.Name} was not found.");
         }
-        return await Task.FromResult(new GetUserResponse(user.Id, user.Name));
+        await context.RespondAsync(new GetUserResponse(user.Id, user.Name));
     }
 }

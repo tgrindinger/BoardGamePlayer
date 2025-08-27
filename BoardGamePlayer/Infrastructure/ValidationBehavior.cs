@@ -1,30 +1,25 @@
 ﻿using FluentValidation;
-using MediatR;
+using GreenPipes;
+using MassTransit;
 
 namespace BoardGamePlayer.Infrastructure;
 
-public sealed class ValidationBehavior<TRequest, TResponse>(
-    IEnumerable<IValidator<TRequest>> validators)
-    : IPipelineBehavior<TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
+public class ValidationBehavior<T>(IValidator<T> _validator)
+    : IFilter<ConsumeContext<T>>
+    where T : class
 {
-    public async Task<TResponse> Handle(
-        TRequest request,
-        RequestHandlerDelegate<TResponse> next,
-        CancellationToken cancellationToken)
+    public void Probe(ProbeContext context)
     {
-        var context = new ValidationContext<TRequest>(request);
-        var tasks = validators
-            .Select(v => v.ValidateAsync(context, cancellationToken));
-        var results = await Task.WhenAll(tasks.ToList());
-        var failures = results
-            .SelectMany(result => result.Errors)
-            .Where(f => f != null)
-            .ToList();
+        context.CreateScope("validation");
+    }
 
-        if (failures.Count != 0)
-            throw new ValidationException(failures); // Or return a Result<T> pattern
-
-        return await next(cancellationToken);
+    public async Task Send(ConsumeContext<T> context, IPipe<ConsumeContext<T>> next)
+    {
+        var validationResult = await _validator.ValidateAsync(context.Message);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+        await next.Send(context);
     }
 }
