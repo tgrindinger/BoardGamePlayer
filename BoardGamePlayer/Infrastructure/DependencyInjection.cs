@@ -3,6 +3,7 @@ using BoardGamePlayer.Features.Games.Handlers;
 using BoardGamePlayer.Features.Users.Handlers;
 using FluentValidation;
 using MassTransit;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
@@ -11,9 +12,10 @@ namespace BoardGamePlayer.Infrastructure;
 
 public static class DependencyInjection
 {
+    private static SqliteConnection? _keepAlive;
+
     public static IServiceCollection RegisterDependencies(this IServiceCollection services)
     {
-        // swagger
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(c =>
         {
@@ -25,12 +27,18 @@ public static class DependencyInjection
 
     public static IServiceCollection RegisterAppDependencies(this IServiceCollection services)
     {
-        // infrastructure
+        var connectionString = "DataSource=TestDb;mode=memory;cache=shared";
+        _keepAlive = new SqliteConnection(connectionString);
+        _keepAlive.Open();
+
         services.AddDbContext<CommandDbContext>(options => options
-            .UseInMemoryDatabase("TestDb"));
+            .UseSqlite(connectionString)
+            .LogTo(Console.WriteLine, LogLevel.Information));
         services.AddDbContext<QueryDbContext>(options => options
-            .UseInMemoryDatabase("TestDb")
-            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+            .UseSqlite(connectionString)
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
+            .LogTo(Console.WriteLine, LogLevel.Information));
+
         services.AddMassTransit(x =>
         {
             x.AddConsumers(Assembly.GetExecutingAssembly());
@@ -48,12 +56,11 @@ public static class DependencyInjection
         });
         services.AddMassTransitHostedService();
 
-        // behaviors
-        services.AddScoped<IValidator<CreateUserCommand>, CreateUserCommandValidator>();
         services.AddScoped<IValidator<CreateGameCommand>, CreateGameCommandValidator>();
         services.AddScoped<IValidator<StartGameCommand>, StartGameCommandValidator>();
         services.AddScoped<IValidator<GetGameQuery>, GetGameQueryValidator>();
         services.AddScoped<IValidator<GetGamesQuery>, GetGamesQueryValidator>();
+        services.AddScoped<IValidator<CreateUserCommand>, CreateUserCommandValidator>();
         services.AddScoped<IValidator<GetUserQuery>, GetUserQueryValidator>();
         return services;
     }
